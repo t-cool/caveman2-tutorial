@@ -1,0 +1,585 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Common LispでWebアプリを書いてみよう</title>
+<meta name="description" value="Creating a web app in Common Lisp in caveman2">
+<meta name="keywords" value="web development, common lisp, programming">
+<meta name="author" value="Matthew Carter">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<script src="ahungry-blog.js" type="text/javascript"></script><link href="ahungry-blog.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<img src="logo.png">
+<h1>Common LispでWebアプリを書いてみよう</h1>
+<p>本ページは、ahungryさんの許可を得て、日本語訳を公開しています。</p>
+<p>元記事は、次のリンクからご参照ください。</p>
+<p><a href="http://ahungry.com/blog/2015-07-07-Writing-a-Common-Lisp-Web-App.html">Writing a Common Lisp Web App in caveman2</a></p>
+<br/>
+<div id="table-of-contents">
+<h2>目次</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org9240ed3">Common LispでWebアプリを書いてみよう: 導入</a></li>
+<li><a href="#org3b0c897">独自のルーティングを定義しよう</a></li>
+<li><a href="#org338f858">echoやprint出力からもう一歩進めてmodelをつくろう</a></li>
+<li><a href="#orge405eed">redditの購読者数を取り出せるようにmodelにコードを追加しよう</a></li>
+<li><a href="#org4b2ac02">新しい言語の購読者をカウントしやすくしよう</a></li>
+<li><a href="#org2c34424">少し視覚的効果を加えよう</a></li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-org9240ed3" class="outline-2">
+<h2 id="org9240ed3">Common LispでWebアプリを書く: 導入</h2>
+<div class="outline-text-2" id="text-org9240ed3">
+<p>
+以下のことを想定します：
+</p>
+
+<ul class="org-ul">
+<li><a href="http://www.lispworks.com/documentation/HyperSpec/Front/index.htm">Common Lisp</a>の基本とシンタックスに慣れていること</li>
+<li>Common Lispの処理系をもっていること (私は<a href="http://www.sbcl.org/">SBCL</a>を使っています)</li>
+<li><a href="https://www.quicklisp.org/beta/">Quicklisp</a>のセットアップが終わっていること</li>
+<li>GNU EmacsとSLIMEを使ってCommon Lispを使っていること</li>
+</ul>
+
+<p>
+今回webアプリを開発するために、<a href="https://github.com/fukamachi/caveman">caveman2</a>と呼ばれる素晴らしいwebフレームワークを使います。
+</p>
+
+<p>
+基本的なアイデアは、作業が全てが終わった時、Unixデーモンのような頑丈なwebアプリを走らせることです。
+これは多くのweb系でない言語においては共通していますが、Web系の言語やPHPのようなスクリプト言語では滅多にありません
+。
+</p>
+
+<p>
+このアプリは、自分で作るwebサーバーを通してリクエストに応答します。（小さなApacheだと考えてください）
+</p>
+
+<p>
+もしこのチュートリアルで迷ったら、完全なコードを<a href="https://github.com/ahungry/language-popularity">https://github.com/ahungry/language-popularity</a>で確認できます。
+githubのページで個別のファイルを読んでもいいですし、レポジトリをforkしてもらっても構いません。
+(ただし、~/quicklisp/local-projectsではなく、~/src/lispを用いていることに気をつけてください)
+</p>
+
+<p>
+私のサーバー上で遊んでもらっても構いません。
+手作業でURLを変えてみて、何が起こるのかを試してみてください。
+URLでcompare/以降を手作業で変更することで表示結果がかわります。
+</p>
+
+<p>
+<a href="http://lang-pop.ahungry.com">http://lang-pop.ahungry.com</a>
+</p>
+<p>
+<a href="http://lang-pop.ahungry.com/compare/lisp/haskell/prolog">http://lang-pop.ahungry.com/compare/lisp/haskell/prolog</a>
+</p>
+<p>
+<a href="http://lang-pop.ahungry.com/compare/lisp/haskell/scala">http://lang-pop.ahungry.com/compare/lisp/haskell/scala</a>
+</p>
+<p>
+<a href="http://lang-pop.ahungry.com/compare/lisp/scheme/shen">http://lang-pop.ahungry.com/compare/lisp/scheme/shen</a>
+</p>
+            
+<p>
+まず、REPLを開いて、caveman2をloadしてください。
+</p>
+
+<p>
+REPLでは次のように打ち込んでください:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(ql:quickload <span style="color: #0055ff;">:caveman2</span>)
+
+(caveman2:make-project <span style="color: #ff0077;">"~/quicklisp/local-projects/language-popularity"</span>
+  <span style="color: #0055ff;">:author</span> <span style="color: #ff0077;">"Your Name"</span>
+  <span style="color: #0055ff;">:email</span> <span style="color: #ff0077;">"Your Email"</span>)
+
+(ql:quickload <span style="color: #0055ff;">:language-popularity</span>)
+(language-popularity:start <span style="color: #0055ff;">:port</span> 5000)
+</pre>
+</div>
+
+<p>
+make-project関数を呼び出したディレクトリにcaveman2アプリのひな型が作成され、
+5000番ポートにwebサーバーが起動します。
+</p>
+
+<p>
+ブラウザ上で<a href="http://localhost:5000">http://localhost:5000</a>にアクセスする
+ことで、アプリが動いていることを確認できます。
+</p>
+
+<p>
+そこに表示されるwelcomeメッセージや、リンク先のcaveman2に関するドキュメントを読むことをお勧めします。
+</p>
+</div>
+</div>
+<div id="outline-container-org3b0c897" class="outline-2">
+<h2 id="org3b0c897">独自のルーティングを定義しよう</h2>
+<div class="outline-text-2" id="text-org3b0c897">
+<p>
+さて、デフォルトのページはよくできたものでしたが、もう少し夢中になれるものを作っていきましょう。
+</p>
+
+<p>
+これからファイル群を参照する時は、前の段階で作ったディレクトリを、(~/quicklisp/local-projects/language-popularity)で見つけることができることを想定しています。
+その場所にあるファイル群に言及しながら進めます。
+</p>
+
+<p>
+では、進めて行きましょう。src/web.lispを開いて、デフォルトのルートである`(defroute "/" ()…'の下に、次のように付け足してください。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
+  (format nil <span style="color: #ff0077;">"We saw this in the URL: ~a"</span> (car splat)))
+</pre>
+</div>
+
+<p>
+EmacsでC-c C-cと押してください。（あなたは今、Emacsを使っていますよね？）
+そうすることで、起動中のSLIMEのインスタンスに、新しいルーティングをコンパイルして送ります。
+</p>
+
+<p>
+うまくいかない場合、エディターのslime/swankを使う必要があるでしょう。
+もしくはCommon Lispの処理系を再起動して、プロジェクトをquickloadでもう一度読み込む必要があるでしょう。
+</p>
+
+<p>
+あなたが新たに加えたルーティングを試すために、<a href="http://localhost:5000/compare/haskell/lisp">http://localhost:5000/compare/haskell/lisp</a>を開いてください。
+</p>
+
+<p>
+どのようにルーティングがワイルドカードにマッチして、*のマッチを抜き出し、それをsplat変数に保存したのかに注目してください。
+</p>
+</div>
+</div>
+<div id="outline-container-org338f858" class="outline-2">
+<h2 id="org338f858">基本的なechoやprint出力からもう一歩進めてmodelをつくろう</h2>
+<div class="outline-text-2" id="text-org338f858">
+<p>
+このプロジェクトの名前が「言語の人気」であり、また独自のルーティング名からも推測されたかもしれませんが、
+私たちは２つ以上の言語が「人気」という観点から、どのように互いに競り合っているか確認します。それぞれがredditで何人の購読者をもっているかを「人気」とします。
+</p>
+
+<p>
+私たちは、cavemann2のフレームワークで少しセットアップをします。  
+
+どういうわけか、caveman2はsrc/model.lispをプロジェクトの雛形として作らない。
+src/db.lispはありますが、それはデータベースのセットアップに関連するファイルです。
+</p>
+
+<p>
+新しくsrc/model.lispを作り、以下をつけ加えてください:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:cl-user</span>)
+(<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.model</span>
+  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
+        <span style="color: #0055ff;">:cl-json</span>
+        <span style="color: #0055ff;">:drakma</span>
+        <span style="color: #0055ff;">:vecto</span>
+        <span style="color: #0055ff;">:md5</span>
+        <span style="color: #0055ff;">:split-sequence</span>)
+  (<span style="color: #0055ff;">:import-from</span> <span style="color: #0055ff;">:language-popularity.config</span>
+                <span style="color: #0055ff;">:config</span>)
+  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:get-language-sub-stats</span>
+           <span style="color: #0055ff;">:pie-chart</span>))
+
+(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:language-popularity.model</span>)
+</pre>
+</div>
+
+<p>
+それぞれのS式でC-x C-cを押しながら進めると、起動中のREPLインスタンスに、コンパイルされたコードが送られる。(全てを読み込んでもいいです)
+</p>
+
+<p>
+では、全てが正しく読み込みされたことを確認するために、language-popularity.asdも更新しましょう。
+:componentsの箇所を見つけてください。
+
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp"><span style="color: #0055ff;">:components</span>
+  ((<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"main"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span> <span style="color: #ff0077;">"view"</span> <span style="color: #ff0077;">"db"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"web"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"model"</span> <span style="color: #ff0077;">"view"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"model"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"view"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"db"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+</pre>
+</div>
+
+<p>
+modelに関する行を足し、webの行にmodelの依存関係も足しました。
+</p>
+
+<p>
+必ず、modelをsrc/web.lispにも付け足してください：
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:cl-user</span>)
+(<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.web</span>
+  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
+        <span style="color: #0055ff;">:caveman2</span>
+        <span style="color: #0055ff;">:language-popularity.config</span>
+        <span style="color: #0055ff;">:language-popularity.view</span>
+        <span style="color: #0055ff;">:language-popularity.db</span>
+        <span style="color: #0055ff;">:language-popularity.model</span>
+        <span style="color: #0055ff;">:datafly</span>
+        <span style="color: #0055ff;">:sxql</span>
+        <span style="color: #0055ff;">:split-sequence</span>
+        <span style="color: #0055ff;">:md5</span>)
+  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:*web*</span>))
+(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:language-popularity.web</span>)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orge405eed" class="outline-2">
+<h2 id="orge405eed">redditの購読者数を取り出せるようにmodel内にコードを追加しよう</h2>
+<div class="outline-text-2" id="text-orge405eed">
+
+<p>
+ゆとりをもって進めるために、サードパーティーのライブラリを利用します。全て、Quicklisp経由で利用可能です。
+</p>
+
+<p>
+直接、次のように打ち込んでもいいですし:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(ql:quickload <span style="color: #0055ff;">:library-name-here</span>)
+</pre>
+</div>
+
+<p>
+anguage-popularity.asdのファイルを開いて、defpackageの:useの箇所に付け足してもいいです。
+</p>
+
+<p>
+ここで次ようなlanguage-popularity.asdファイルをもつべきです。
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp"><span style="color: #0055ff;">:sxql</span>
+
+<span style="color: #888a85; font-style: italic;">;; </span><span style="color: #888a85; font-style: italic;">for other tasks</span>
+<span style="color: #0055ff;">:drakma</span>
+<span style="color: #0055ff;">:cl-json</span>
+<span style="color: #0055ff;">:split-sequence</span>
+<span style="color: #0055ff;">:vecto</span>
+<span style="color: #0055ff;">:md5</span>)
+</pre>
+</div>
+
+<p>
+そして、src/model.lisp内のdefpackageは、次のようになります:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.model</span>
+  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
+        <span style="color: #0055ff;">:cl-json</span>
+        <span style="color: #0055ff;">:drakma</span>
+        <span style="color: #0055ff;">:vecto</span>
+        <span style="color: #0055ff;">:md5</span>
+        <span style="color: #0055ff;">:split-sequence</span>)
+  (<span style="color: #0055ff;">:import-from</span> <span style="color: #0055ff;">:language-popularity.config</span>
+                <span style="color: #0055ff;">:config</span>)
+  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:get-language-sub-stats</span>
+           <span style="color: #0055ff;">:pie-chart</span>))
+</pre>
+</div>
+
+<p>
+pie-chart関数と:vectoが後にくることは無視してください。今の所、代わりの関数を、Languageの型クラスのための基本的なクラス構想と一緒に、src/model.lispに付け加えておきましょう。Common Lispでのクラスは、CLOSと呼ばれる仕組みで実現されています。CLOSは素晴らしいものですが、ここでは、複数の値を簡単に保存し参照するための方法として使います。
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defclass</span> <span style="color: #deff00; font-weight: bold;">Language</span> ()
+  ((Subscribers
+    <span style="color: #0055ff;">:accessor</span> subs
+    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:subs</span>
+    <span style="color: #0055ff;">:initform</span> 0)
+   (Last-Updated
+    <span style="color: #0055ff;">:accessor</span> last-updated
+    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:last-updated</span>
+    <span style="color: #0055ff;">:initform</span> 0)
+   (About
+    <span style="color: #0055ff;">:accessor</span> about
+    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:about</span>
+    <span style="color: #0055ff;">:initform</span> <span style="color: #ff0077;">"Some details about the language."</span>))
+  (<span style="color: #0055ff;">:documentation</span> <span style="color: #777700; font-weight: bold; font-style: italic;">"Language stats and details"</span>))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">pie-chart</span> (slices)
+  slices)
+</pre>
+</div>
+
+<p>
+さて次は、次の目的を果たす関数が必要です:
+</p>
+
+<ul class="org-ul">
+<li>リモートのJSONエンドポイントを照合(query)する(redditのページのURLに.jsonを付け足すと、json形式でレスポンスを得られるのを知ってましたか？本当にいいですよ!)</li>
+<li>リモートのJSONを、cl-jsonがパースできる文字列にデコードする</li>
+<li>cl-jsonでJSONの文字列をパースして、私たちが使うオボジェクトをえる</li>
+</ul>
+
+<p>
+次にこれを加えてください（別の方法を伝えるまでは、まだsrc/model.lispに書いてください。）  
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">char-vector-to-string</span> (v)
+  (format nil <span style="color: #ff0077;">"~{~a~}"</span> (mapcar #'code-char (coerce v 'list))))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">remote-json-request</span> (uri)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Pull in remote JSON.  Drakma returns it as a large vector of</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;">character codes, so we have to parse it out to string form for</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;">cl-json."</span>
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((json-response-raw (http-request uri))
+         (json-response-string (char-vector-to-string json-response-raw))
+         (json (decode-json-from-string json-response-string)))
+    json)
+</pre>
+</div>
+
+<p>
+ここでのhttp-request関数は、drakmaでの作法です。(他の言語でのCURLに似ています。) 
+decode-json-from-string関数は、cl-jsonからきています.
+</p>
+
+<p>
+Common Lispの入門者のために補足ですが、#'(シャープクオート)は関数を示します。
+私はよく関数として区別するために#'をつけます。
+</p>
+
+<p>
+drakmaのhttp-request関数は、ASCII文字コード一式をベクトルで与えるので、
+char-vector-to-string関数は、それを基本的なJSONの文字列に変えます。
+</p>
+
+<p>
+今、私たちはパースされたJSONを遠隔からリクエストする方法をもっているので、
+redditのエンドポイントを利用して、実際のデータをもった新しい言語のインスタンスを保存できます。
+</p>
+
+<p>
+そのために、私たちはそれらをハッシュテーブルに投げ入れます。
+そうすることで、私たちは言語名に基づいて詳細を検索することができるようになります。
+</p>
+
+<p>
+これを付け足してください:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defparameter</span> <span style="color: #0033ff; font-weight: bold;">*language-stats*</span> (make-hash-table <span style="color: #0055ff;">:test</span> #'equal))
+(<span style="color: #3cff00; font-weight: bold;">defconstant</span> <span style="color: #0033ff; font-weight: bold;">+cache-time+</span> (* 60 60)) <span style="color: #888a85; font-style: italic;">;; </span><span style="color: #888a85; font-style: italic;">1 hour</span>
+
+(<span style="color: #3cff00; font-weight: bold;">defmacro</span> <span style="color: #ffee00; font-weight: bold;">jkey</span> (k <span style="color: #deff00; font-weight: bold;">&amp;rest</span> rest)
+  `(cdr (assoc ,k ,@rest)))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">set-language-stats</span> (language)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Build language stats into our lang class via external sources of</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;">popularity."</span>
+  (<span style="color: #3cff00; font-weight: bold;">let</span> ((lang-class (or (gethash language *language-stats*) (make-instance 'Language))))
+    (<span style="color: #3cff00; font-weight: bold;">when</span> (&gt; (- (get-universal-time) (last-updated lang-class)) +cache-time+)
+      (<span style="color: #3cff00; font-weight: bold;">let</span> ((reddit-json
+             (remote-json-request
+              (format nil <span style="color: #ff0077;">"http://reddit.com/r/~a/about.json"</span>
+                      language))))
+        (<span style="color: #3cff00; font-weight: bold;">when</span> (jkey <span style="color: #0055ff;">:subscribers</span> (jkey <span style="color: #0055ff;">:data</span> reddit-json))
+          (setf (subs lang-class) (jkey <span style="color: #0055ff;">:subscribers</span> (jkey <span style="color: #0055ff;">:data</span> reddit-json))))
+        (setf (last-updated lang-class) (get-universal-time))))
+    (setf (gethash language *language-stats*) lang-class)
+    (cons (intern (string-upcase language)) (subs lang-class))))
+</pre>
+</div>
+
+<p>
+１行ずつ、コードを読んでいきましょう。
+</p>
+
+<p>
+language-stats変数とcache-time定数は、言語のオブジェクトを前者に保存しておいて、redditへのAPIリクエストを後者においておくためにあります
+</p>
+
+<p>
+jkeyマクロは、set-language-stats関数内での冗長性を減らすためにあります。
+</p>
+
+<p>
+jkeyマクロのおかげで。cl-jsonによって作られたJSONのリストの中でネストされたキーを手軽に参照できます。
+</p>
+
+<p>
+最後に、set-language-stats関数をみてみましょう。  この関数は、languageという１つの引数をとり、最後のリクエストから1時間が経っている限り、JSONリクエストを
+<a href="http://reddit.com/r/language/about.json">http://reddit.com/r/language/about.json</a> 
+に実行します。処理系のインスタンスを再起動すると、当然ながらこれをリセットすることができます。
+</p>
+
+<p>
+購読者のキーが存在するとき、(無効のエンドポイントをリクエストすれば駄目ですが)それは、その言語帯ジェクトの購読者スロットを更新します。
+</p>
+
+<p>
+購読者の更新の後、それは言語の値を、language-stats変数内のnameキーの下に加えます(更新します)
+</p>
+
+<p>
+全てを終えるとついに、少し怠けることができるようになります。その関数は、インターンされた言語の名前("haskell"はHASKELLという風に)と購読者数のコンスセルとして返ってきます。
+
+</p>
+</div>
+</div>
+<div id="outline-container-org4b2ac02" class="outline-2">
+<h2 id="org4b2ac02">新しい言語の購読者をカウントしやすくしよう</h2>
+<div class="outline-text-2" id="text-org4b2ac02">
+<p>
+前の章はすごく難しかったので、少し休憩をとるのがよいと思います。
+</p>
+
+<p>
+次に、Common Lispが、定義された関数を利用するとき,どれほど簡潔に美しくできるのかをみていきましょう。
+</p>
+
+<p>
+src/model.lispに、次のように付け足してください：
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">get-language-sub-stats</span> (language-list)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Pull out the stats for a variety of languages listed"</span>
+  (sort
+   (mapcar #'set-language-stats language-list)
+   #'&gt; <span style="color: #0055ff;">:key</span> #'cdr))
+</pre>
+</div>
+
+<p>
+こうすることで、`("haskell" "lisp" "clojure")のような形式の言語リストを渡して、購読者を数えることで、その言語の購読者数を順に並べられたものをうけとれます。(先ほどのset-language-stats関数を思い出してください。名前のコンスと購読者数を返しますが、不器用なコードですね。)
+</p>
+
+<p>
+src/web.lispで、これを処理できるように、ルーティングを更新しましょう。
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((language-list
+          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #0055ff;">:test</span> #'equal))
+         (stats (get-language-sub-stats language-list)))
+    (format nil <span style="color: #ff0077;">"&lt;div style='font-size:.8em;'&gt;~{~a&lt;br&gt;~%~}&lt;/div&gt;"</span>
+            (get-language-sub-stats language-list))))
+</pre>
+</div>
+
+<p>
+このルーティングをコンパイルする前に、web fileのpackageに、:split-sequenceをdefpackageに加える必要があります。(読者のみなさんの練習のために、ここは割愛します。)
+</p>
+
+<p>
+私たちの言語リストは、"haskell/lisp/clojure"のようなスプラット値を元に作られます。スプラット値は、スラッシュ"/”を元にしています。もし空の値が混じっていても、消してくれます。
+</p>
+
+<p>
+次のURLにアクセスしてください。<a href="http://localhost:5000/compare/haskell/lisp/clojure">http://localhost:5000/compare/haskell/lisp/clojure</a> そうすれば、3つのプログラミング言語が購読者数でカウントされて、リストとして出力されているはずです。(このガイドのおかげで、redditでのLisp購読者数が少し増えるといいですね!)
+
+</p>
+</div>
+</div>
+<div id="outline-container-org2c34424" class="outline-2">
+<h2 id="org2c34424">少し視覚的効果を加えよう</h2>
+<div class="outline-text-2" id="text-org2c34424">
+<p>
+vectoライブラリを参照していたことを覚えていますか? では、円グラフを私たちの　webアプリに導入しましょう。
+</p>
+
+<p>
+vectoのAPIドキュメントは、素晴らしい出来なので、ここでは<a href="http://xach.com/lisp/vecto/">vecto</a>ライブラリについて説明しません。
+</p>
+
+<p>
+では、src/model.lispで、次のように足してください。
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">md5-as-string</span> (md5-vector)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Convert an md5-vector, as generated by md5sum-file or md5sum-string                                                        \</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;"> into a plain string for easy comparison"</span>
+  (string-downcase
+   (format nil <span style="color: #ff0077;">"~{~2,'0x~}"</span> (coerce md5-vector 'list))))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">pie-chart</span> (slices)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Parse the data, make a pretty chart"</span>
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((base (md5-as-string (md5sum-string (format nil <span style="color: #ff0077;">"~{~a~}"</span> (mapcar #'car slices)))))
+         (file (format nil <span style="color: #ff0077;">"~~/quicklisp/local-projects/language-popularity/static/images/~a.png"</span> base)))
+    (<span style="color: #3cff00; font-weight: bold;">with-canvas</span> (<span style="color: #0055ff;">:width</span> 400 <span style="color: #0055ff;">:height</span> 250)
+      (set-rgb-fill 1.0 0 0)
+      (centered-circle-path 105 125 100)
+      (fill-path)
+      (set-font (get-font <span style="color: #ff0077;">"~/quicklisp/local-projects/language-popularity/fonts/kenpixel.ttf"</span>) 10)
+      (<span style="color: #3cff00; font-weight: bold;">let</span> ((ratios slices)
+            (sum (reduce #'+ slices <span style="color: #0055ff;">:key</span> #'cdr))
+            (last-theta 0))
+        (<span style="color: #3cff00; font-weight: bold;">dotimes</span> (i (length ratios))
+          (<span style="color: #3cff00; font-weight: bold;">with-graphics-state</span>
+              (<span style="color: #3cff00; font-weight: bold;">let*</span> ((ratio (/ (cdr (nth i ratios)) sum))
+                     (name (car (nth i ratios)))
+                     (t1 last-theta)
+                     (t2 (+ t1 (* (/ pi 180) (* 360 ratio)))))
+                (setf last-theta t2)
+                (<span style="color: #3cff00; font-weight: bold;">flet</span> ((rco () (float (/ (random 100) 100))))
+                  (set-rgba-fill (rco) (rco) (rco) 1))
+                (move-to 105 125)
+                (arc 105 125 100 t1 t2)
+                (fill-and-stroke)
+                (draw-string
+                 (+ 160 (<span style="color: #3cff00; font-weight: bold;">if</span> (&lt; i 5) (* i 10) (<span style="color: #3cff00; font-weight: bold;">if</span> (&gt; i 10) (- 50 (* (- i 10) 10)) 50)))
+                 (- 225 (* i 14))
+                 (format nil <span style="color: #ff0077;">"~a  [~a =&gt; ~a%]"</span>
+                         (prin1-to-string name)
+                         (cdr (nth i ratios))
+                         (round (* 100 (float ratio)))))
+                ))))
+      (save-png file)
+      base)))
+</pre>
+</div>
+<p>
+ここでは、2つのことをしています。渡されるリストに基づいてmd5で処理された情報を元に、画像を保存するためのファイル名を作ります。そして、円グラフを描写します。
+</p>
+
+<p>
+これを動かすためには、利用可能な.ttfファイルをもち、それに対してget-font関数を呼び出す必要があります。
+</p>
+
+<p>
+src/web.lispをもう一度開いて、defrouteをこののように更新する必要があります。
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((language-list
+          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #0055ff;">:test</span> #'equal))
+         (stats (get-language-sub-stats language-list))
+         (pie-name (pie-chart stats)))
+    (format nil <span style="color: #ff0077;">"&lt;img src='/images/~a.png' style='float:left;'&gt;</span>
+<span style="color: #ff0077;">&lt;div style='font-size:.8em;'&gt;~{~a&lt;br&gt;~%~}&lt;/div&gt;"</span>
+            pie-name
+            (get-language-sub-stats language-list))))
+</pre>
+</div>
+
+<p>
+こうすることで、ユーザーがページに訪問すると、このようなチャートを見ることができます。
+</p>
+
+<div class="figure">
+<p><img src="./img/lang-pop.png" alt="lang-pop.png">
+</p>
+</div>
+
+<div id="disqus_thread"></div>
+</div>
+</div>
+</body>
+</html>

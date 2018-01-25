@@ -1,0 +1,652 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Writing a Common Lisp Web App in caveman2</title>
+<meta name="description" value="Creating a web app in Common Lisp in caveman2">
+<meta name="keywords" value="web development, common lisp, programming">
+<meta name="author" value="Matthew Carter">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<script src="ahungry-blog.js" type="text/javascript"></script><link href="ahungry-blog.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<img src="logo.png"><a href="index.html">« Back to article list</a><h1>Writing a Common Lisp Web App in caveman2</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org9240ed3">Writing a web app in Common Lisp: Getting started</a></li>
+<li><a href="#org3b0c897">Defining your first custom route</a></li>
+<li><a href="#org338f858">Doing a little more than basic echos and print outs, setting up a model</a></li>
+<li><a href="#orge405eed">Adding enough in our model to pull reddit subscriber counts</a></li>
+<li><a href="#org4b2ac02">Doing something useful with our new Language subscriber counts</a></li>
+<li><a href="#org2c34424">Adding a little graphical flare</a></li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-org9240ed3" class="outline-2">
+<h2 id="org9240ed3">Writing a web app in Common Lisp: Getting started</h2>
+<div class="outline-text-2" id="text-org9240ed3">
+<p>
+We'll assume the following:
+</p>
+
+<ul class="org-ul">
+<li>You're familiar with <a href="http://www.lispworks.com/documentation/HyperSpec/Front/index.htm">Common Lisp</a> basics/syntax</li>
+<li>You have an instance of Common Lisp installed (I use <a href="http://www.sbcl.org/">SBCL</a>)</li>
+<li>You've set up <a href="https://www.quicklisp.org/beta/">Quicklisp</a> already</li>
+<li>You use GNU emacs + SLIME for your Common Lisp tinkering</li>
+</ul>
+
+<p>
+For this web app, we're going to make use of a great web framework
+called <a href="https://github.com/fukamachi/caveman">caveman2</a>.
+</p>
+
+<p>
+The basic idea, when all done, is to run a persistent web app (similar
+to a UNIX daemon).  This is common in many non-web languages for their
+web based applications, and rare in web or scripting (interpreted)
+style languages, such as PHP.
+</p>
+
+<p>
+The app responds to requests via it's own built in webserver (think a
+miniature Apache).
+</p>
+
+<p>
+If you get lost during this tutorial, you can see a complete code set
+for the project at <a href="https://github.com/ahungry/language-popularity">https://github.com/ahungry/language-popularity</a> -
+either use the github page and view the individual file, or perform
+your own checkout/fork of the repo if you like (just note that I use
+~/src/lisp instead of ~/quicklisp/local-projects throughout my own
+codebase).
+</p>
+
+<p>
+You can play with the complete app on my server here (manually update
+the URL and see what happens!):
+</p>
+
+<p>
+<a href="http://lang-pop.ahungry.com">http://lang-pop.ahungry.com</a>
+</p>
+
+<p>
+To start, we're going to open up our REPL (read-eval-print-loop) and
+load up the caveman2 package.
+</p>
+
+<p>
+In the REPL, type:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(ql:quickload <span style="color: #0055ff;">:caveman2</span>)
+
+(caveman2:make-project <span style="color: #ff0077;">"~/quicklisp/local-projects/language-popularity"</span>
+  <span style="color: #0055ff;">:author</span> <span style="color: #ff0077;">"Your Name"</span>
+  <span style="color: #0055ff;">:email</span> <span style="color: #ff0077;">"Your Email"</span>)
+
+(ql:quickload <span style="color: #0055ff;">:language-popularity</span>)
+(language-popularity:start <span style="color: #0055ff;">:port</span> 5000)
+</pre>
+</div>
+
+<p>
+This is going to create a project skeleton for a caveman2 app in the
+directory referenced in the #'make-project call, as well as begin
+the web server on port 5000.
+</p>
+
+<p>
+You can test that it worked by visiting the barebones app in your
+browser by visiting <a href="http://localhost:5000">http://localhost:5000</a>.
+</p>
+
+<p>
+You should see a message about welcome to caveman2 and a link to some
+caveman2 documentation.
+</p>
+</div>
+</div>
+<div id="outline-container-org3b0c897" class="outline-2">
+<h2 id="org3b0c897">Defining your first custom route</h2>
+<div class="outline-text-2" id="text-org3b0c897">
+<p>
+Having a default page is all well and good, however you're likely here
+as you'd like to make something a little more involved.
+</p>
+
+<p>
+When referring to any files from here on out, I'll assume you can find
+your project directory you created in the last step
+(~/quicklisp/local-projects/language-popularity), so I'll be referring
+to the files you can open/work on relative to that location.
+</p>
+
+<p>
+So…moving on, open up src/web.lisp and go down past the initial
+default route `(defroute "/" ()…' and add the following:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
+  (format nil <span style="color: #ff0077;">"We saw this in the URL: ~a"</span> (car splat)))
+</pre>
+</div>
+
+<p>
+Make sure to press C-c C-c in emacs (you <b>ARE</b> using emacs for this
+right?) to compile the new route into your running SLIME instance.
+</p>
+
+<p>
+If not, you'll need to use your editor's slime/swank integration, or
+restart your Common Lisp instance after each edit/save and
+re-quickload your project.
+</p>
+
+<p>
+Visit your new route at <a href="http://localhost:5000/compare/haskell/lisp">http://localhost:5000/compare/haskell/lisp</a>
+</p>
+
+<p>
+You should see how the route was able to match on a wildcard and pluck
+out the star match and store it into the `splat' variable.
+</p>
+</div>
+</div>
+<div id="outline-container-org338f858" class="outline-2">
+<h2 id="org338f858">Doing a little more than basic echos and print outs, setting up a model</h2>
+<div class="outline-text-2" id="text-org338f858">
+<p>
+As you may have guessed, based on the project name
+(language-popularity) and the custom route definition, we're going to
+be checking on how two (or more) languages stack up with each other in
+terms of their `popularity' (or at least how many reddit subscribers
+each has).
+</p>
+
+<p>
+We're going to do a little bit of setup work with the caveman2
+framework.  For whatever reason, it doesn't create a src/model.lisp
+file in the project skeleton (it has src/db.lisp, but this is database
+setup related).
+</p>
+
+<p>
+Make a new file (src/model.lisp) and add the following:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:cl-user</span>)
+(<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.model</span>
+  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
+        <span style="color: #0055ff;">:cl-json</span>
+        <span style="color: #0055ff;">:drakma</span>
+        <span style="color: #0055ff;">:vecto</span>
+        <span style="color: #0055ff;">:md5</span>
+        <span style="color: #0055ff;">:split-sequence</span>)
+  (<span style="color: #0055ff;">:import-from</span> <span style="color: #0055ff;">:language-popularity.config</span>
+                <span style="color: #0055ff;">:config</span>)
+  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:get-language-sub-stats</span>
+           <span style="color: #0055ff;">:pie-chart</span>))
+
+(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:language-popularity.model</span>)
+</pre>
+</div>
+
+<p>
+You can go across each s-expression (top level (…) block) and C-c
+C-c to add it to the running REPL instance (or reload everything).
+</p>
+
+<p>
+Now, to make sure reloads work properly, you'll also want to update
+language-popularity.asd as so (find the :components area):
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp"><span style="color: #0055ff;">:components</span>
+  ((<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"main"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span> <span style="color: #ff0077;">"view"</span> <span style="color: #ff0077;">"db"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"web"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"model"</span> <span style="color: #ff0077;">"view"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"model"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"view"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"db"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+</pre>
+</div>
+
+<p>
+We added the model line, as well as a dependency on the model to the
+web line.
+</p>
+
+<p>
+Make sure to add the model include into src/web.lisp as well (up near
+the top):
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:cl-user</span>)
+(<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.web</span>
+  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
+        <span style="color: #0055ff;">:caveman2</span>
+        <span style="color: #0055ff;">:language-popularity.config</span>
+        <span style="color: #0055ff;">:language-popularity.view</span>
+        <span style="color: #0055ff;">:language-popularity.db</span>
+        <span style="color: #0055ff;">:language-popularity.model</span>
+        <span style="color: #0055ff;">:datafly</span>
+        <span style="color: #0055ff;">:sxql</span>
+        <span style="color: #0055ff;">:split-sequence</span>
+        <span style="color: #0055ff;">:md5</span>)
+  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:*web*</span>))
+(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:language-popularity.web</span>)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orge405eed" class="outline-2">
+<h2 id="orge405eed">Adding enough in our model to pull reddit subscriber counts</h2>
+<div class="outline-text-2" id="text-orge405eed">
+<p>
+For this we're going to tap into a few third party libraries (all available
+via Quicklisp) to make our life easier.
+</p>
+
+<p>
+This is done by either directly typing:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(ql:quickload <span style="color: #0055ff;">:library-name-here</span>)
+</pre>
+</div>
+
+<p>
+or by adding to the language-popularity.asd file (ASDF - Another
+System Definition Facility) and including in the :use portion of our
+defpackage.
+</p>
+
+<p>
+Now we should have a language-popularity.asd file that looks like:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp"><span style="color: #0055ff;">:sxql</span>
+
+<span style="color: #888a85; font-style: italic;">;; </span><span style="color: #888a85; font-style: italic;">for other tasks</span>
+<span style="color: #0055ff;">:drakma</span>
+<span style="color: #0055ff;">:cl-json</span>
+<span style="color: #0055ff;">:split-sequence</span>
+<span style="color: #0055ff;">:vecto</span>
+<span style="color: #0055ff;">:md5</span>)
+</pre>
+</div>
+
+<p>
+and a defpackage in src/model.lisp that looks like:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.model</span>
+  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
+        <span style="color: #0055ff;">:cl-json</span>
+        <span style="color: #0055ff;">:drakma</span>
+        <span style="color: #0055ff;">:vecto</span>
+        <span style="color: #0055ff;">:md5</span>
+        <span style="color: #0055ff;">:split-sequence</span>)
+  (<span style="color: #0055ff;">:import-from</span> <span style="color: #0055ff;">:language-popularity.config</span>
+                <span style="color: #0055ff;">:config</span>)
+  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:get-language-sub-stats</span>
+           <span style="color: #0055ff;">:pie-chart</span>))
+</pre>
+</div>
+
+<p>
+Ignore the #'pie-chart and :vecto portions will come later, so lets
+just add a stub/placeholder function for that for now (in
+src/model.lisp), as well as a very basic class structure for our
+Language type class (classes in Common Lisp are done via a system
+called CLOS, which is very awesome, but we're mainly using it as an
+easy way to store and reference values):
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defclass</span> <span style="color: #deff00; font-weight: bold;">Language</span> ()
+  ((Subscribers
+    <span style="color: #0055ff;">:accessor</span> subs
+    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:subs</span>
+    <span style="color: #0055ff;">:initform</span> 0)
+   (Last-Updated
+    <span style="color: #0055ff;">:accessor</span> last-updated
+    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:last-updated</span>
+    <span style="color: #0055ff;">:initform</span> 0)
+   (About
+    <span style="color: #0055ff;">:accessor</span> about
+    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:about</span>
+    <span style="color: #0055ff;">:initform</span> <span style="color: #ff0077;">"Some details about the language."</span>))
+  (<span style="color: #0055ff;">:documentation</span> <span style="color: #777700; font-weight: bold; font-style: italic;">"Language stats and details"</span>))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">pie-chart</span> (slices)
+  slices)
+</pre>
+</div>
+
+<p>
+Next up, we need some functions to:
+</p>
+
+<ul class="org-ul">
+<li>Query a remote JSON endpoint (did you know you can add a .json extension to most any reddit page and get a JSON response? pretty sweet!)</li>
+<li>Decode the remote JSON into a string for cl-json to parse</li>
+<li>Parse the JSON string with cl-json to get an object we can use</li>
+</ul>
+
+<p>
+Add this next (still in src/model.lisp unless I say otherwise!):
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">char-vector-to-string</span> (v)
+  (format nil <span style="color: #ff0077;">"~{~a~}"</span> (mapcar #'code-char (coerce v 'list))))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">remote-json-request</span> (uri)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Pull in remote JSON.  Drakma returns it as a large vector of</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;">character codes, so we have to parse it out to string form for</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;">cl-json."</span>
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((json-response-raw (http-request uri))
+         (json-response-string (char-vector-to-string json-response-raw))
+         (json (decode-json-from-string json-response-string)))
+    json)
+</pre>
+</div>
+
+<p>
+The #'http-request function is courtesy of drakma (similar to CURL in
+other languages), while #'decode-json-from-string is from cl-json.
+</p>
+
+<p>
+Also, for the Common Lisp novices, #' is a way to refer to a function,
+so I'll typically add it in front to distinguish it as such.
+</p>
+
+<p>
+The drakma #'http-request gives a vector set of ASCII character codes,
+so our little #'char-vector-to-string changes it to a basic JSON
+string.
+</p>
+
+<p>
+Now that we have a way to remotely request some parsed out JSON, we
+can tap into the reddit endpoints and store some instances of our new
+Language objects with actual data.
+</p>
+
+<p>
+For this, we'll just throw them in a hash table, as it'll give us an
+easy way to query out details based on a language name.
+</p>
+
+<p>
+Add this:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defparameter</span> <span style="color: #0033ff; font-weight: bold;">*language-stats*</span> (make-hash-table <span style="color: #0055ff;">:test</span> #'equal))
+(<span style="color: #3cff00; font-weight: bold;">defconstant</span> <span style="color: #0033ff; font-weight: bold;">+cache-time+</span> (* 60 60)) <span style="color: #888a85; font-style: italic;">;; </span><span style="color: #888a85; font-style: italic;">1 hour</span>
+
+(<span style="color: #3cff00; font-weight: bold;">defmacro</span> <span style="color: #ffee00; font-weight: bold;">jkey</span> (k <span style="color: #deff00; font-weight: bold;">&amp;rest</span> rest)
+  `(cdr (assoc ,k ,@rest)))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">set-language-stats</span> (language)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Build language stats into our lang class via external sources of</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;">popularity."</span>
+  (<span style="color: #3cff00; font-weight: bold;">let</span> ((lang-class (or (gethash language *language-stats*) (make-instance 'Language))))
+    (<span style="color: #3cff00; font-weight: bold;">when</span> (&gt; (- (get-universal-time) (last-updated lang-class)) +cache-time+)
+      (<span style="color: #3cff00; font-weight: bold;">let</span> ((reddit-json
+             (remote-json-request
+              (format nil <span style="color: #ff0077;">"http://reddit.com/r/~a/about.json"</span>
+                      language))))
+        (<span style="color: #3cff00; font-weight: bold;">when</span> (jkey <span style="color: #0055ff;">:subscribers</span> (jkey <span style="color: #0055ff;">:data</span> reddit-json))
+          (setf (subs lang-class) (jkey <span style="color: #0055ff;">:subscribers</span> (jkey <span style="color: #0055ff;">:data</span> reddit-json))))
+        (setf (last-updated lang-class) (get-universal-time))))
+    (setf (gethash language *language-stats*) lang-class)
+    (cons (intern (string-upcase language)) (subs lang-class))))
+</pre>
+</div>
+
+<p>
+Holy freaking function Batman!  May be your first reaction to seeing
+this abomination of a function; I assure you it's not so bad, although
+sometimes due to the interactive nature of the Common Lisp REPL and
+adding little pieces at a time, it is easy to get carried away and not
+properly modularize enough of the code.
+</p>
+
+<p>
+So, lets take it line by line.
+</p>
+
+<p>
+The language-stats and cache-time parameter and constants are there for
+storing Language objects in the former, and keeping our API requests to
+reddit down in the latter.
+</p>
+
+<p>
+The macro #'jkey (ehh…not a function, but I'll steal the #' syntax) is
+to reduce verbosity in the #'set-language-stats by a small amount.
+</p>
+
+<p>
+It lets us quickly reference nested keys in a JSON alist created by
+cl-json.
+</p>
+
+<p>
+Now we enter the beast (I mean #'set-language-stats).  It takes a
+single parameter/argument (language) and runs a JSON request to
+<a href="http://reddit.com/r/language/about.json">http://reddit.com/r/language/about.json</a>, as long as it's been
+at least an hour since our last request (restarting the instance of
+your implementation is obviously going to reset this).
+</p>
+
+<p>
+When the subscriber key exists (if you request an invalid endpoint, it
+won't), it will update the Language object's Subscribers slot.
+</p>
+
+<p>
+Following the subscriber update, it adds (or updates) the language's
+value under it's name key in the language-stats parameter (yea, yea,
+global state, mutability, not ideal, I get it).
+</p>
+
+<p>
+Finally, after all of that, we have a little laziness tossed in.  The
+function ends up returning a cons of the language name interned (so
+"haskell" becomes HASKELL) and the subscriber count.
+</p>
+</div>
+</div>
+<div id="outline-container-org4b2ac02" class="outline-2">
+<h2 id="org4b2ac02">Doing something useful with our new Language subscriber counts</h2>
+<div class="outline-text-2" id="text-org4b2ac02">
+<p>
+I hope you took a break after the last segment, it was a doozy.
+</p>
+
+<p>
+Next up, we're going to see some beauty in how terse Common Lisp
+can be when making use of some defined functions.
+</p>
+
+<p>
+Add the following to src/model.lisp:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">get-language-sub-stats</span> (language-list)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Pull out the stats for a variety of languages listed"</span>
+  (sort
+   (mapcar #'set-language-stats language-list)
+   #'&gt; <span style="color: #0055ff;">:key</span> #'cdr))
+</pre>
+</div>
+
+<p>
+This gives us a function that we can pass a list of languages to (in
+format such as (list "haskell" "lisp" "clojure"), and receive a sorted
+(by subscriber count) list of subscribers (remember how we awkwardly
+had #'set-language-stats returning a cons of a name and sub count?)
+</p>
+
+<p>
+Hop on over to src/web.lisp and lets update our route to handle this:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((language-list
+          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #0055ff;">:test</span> #'equal))
+         (stats (get-language-sub-stats language-list)))
+    (format nil <span style="color: #ff0077;">"&lt;div style='font-size:.8em;'&gt;~{~a&lt;br&gt;~%~}&lt;/div&gt;"</span>
+            (get-language-sub-stats language-list))))
+</pre>
+</div>
+
+<p>
+You may have to add :split-sequence up in the defpackage (I'll leave
+that as an exercise for the reader) before you recompile this route,
+as we use it here in the web file/package.
+</p>
+
+<p>
+Our language-list is built from our splat value
+(haskell/lisp/clojure), split based on the slash `/' and then cleaned
+up for any empty values that slipped in.
+</p>
+
+<p>
+When you visit <a href="http://localhost:5000/compare/haskell/lisp/clojure">http://localhost:5000/compare/haskell/lisp/clojure</a> you
+should now see a page that lists out the subscriber counts (sorted) of
+the 3 different programming languages (hopefully this guide will help
+lisp get a minor boost!).
+</p>
+</div>
+</div>
+<div id="outline-container-org2c34424" class="outline-2">
+<h2 id="org2c34424">Adding a little graphical flare</h2>
+<div class="outline-text-2" id="text-org2c34424">
+<p>
+Remember the reference to the vecto library?  It's time to have some
+pie (chart) with our web app.
+</p>
+
+<p>
+I'm not going to break down the <a href="http://xach.com/lisp/vecto/">vecto</a> library calls, as the <a href="http://xach.com/lisp/vecto/">API
+Documentation for Vecto</a> is actually quite amazing, and does a better
+job than I ever could.
+</p>
+
+<p>
+So, hop on over to src/model.lisp and add the following:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">md5-as-string</span> (md5-vector)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Convert an md5-vector, as generated by md5sum-file or md5sum-string                                                        \</span>
+<span style="color: #777700; font-weight: bold; font-style: italic;"> into a plain string for easy comparison"</span>
+  (string-downcase
+   (format nil <span style="color: #ff0077;">"~{~2,'0x~}"</span> (coerce md5-vector 'list))))
+
+(<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">pie-chart</span> (slices)
+  <span style="color: #777700; font-weight: bold; font-style: italic;">"Parse the data, make a pretty chart"</span>
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((base (md5-as-string (md5sum-string (format nil <span style="color: #ff0077;">"~{~a~}"</span> (mapcar #'car slices)))))
+         (file (format nil <span style="color: #ff0077;">"~~/quicklisp/local-projects/language-popularity/static/images/~a.png"</span> base)))
+    (<span style="color: #3cff00; font-weight: bold;">with-canvas</span> (<span style="color: #0055ff;">:width</span> 400 <span style="color: #0055ff;">:height</span> 250)
+      (set-rgb-fill 1.0 0 0)
+      (centered-circle-path 105 125 100)
+      (fill-path)
+      (set-font (get-font <span style="color: #ff0077;">"~/quicklisp/local-projects/language-popularity/fonts/kenpixel.ttf"</span>) 10)
+      (<span style="color: #3cff00; font-weight: bold;">let</span> ((ratios slices)
+            (sum (reduce #'+ slices <span style="color: #0055ff;">:key</span> #'cdr))
+            (last-theta 0))
+        (<span style="color: #3cff00; font-weight: bold;">dotimes</span> (i (length ratios))
+          (<span style="color: #3cff00; font-weight: bold;">with-graphics-state</span>
+              (<span style="color: #3cff00; font-weight: bold;">let*</span> ((ratio (/ (cdr (nth i ratios)) sum))
+                     (name (car (nth i ratios)))
+                     (t1 last-theta)
+                     (t2 (+ t1 (* (/ pi 180) (* 360 ratio)))))
+                (setf last-theta t2)
+                (<span style="color: #3cff00; font-weight: bold;">flet</span> ((rco () (float (/ (random 100) 100))))
+                  (set-rgba-fill (rco) (rco) (rco) 1))
+                (move-to 105 125)
+                (arc 105 125 100 t1 t2)
+                (fill-and-stroke)
+                (draw-string
+                 (+ 160 (<span style="color: #3cff00; font-weight: bold;">if</span> (&lt; i 5) (* i 10) (<span style="color: #3cff00; font-weight: bold;">if</span> (&gt; i 10) (- 50 (* (- i 10) 10)) 50)))
+                 (- 225 (* i 14))
+                 (format nil <span style="color: #ff0077;">"~a  [~a =&gt; ~a%]"</span>
+                         (prin1-to-string name)
+                         (cdr (nth i ratios))
+                         (round (* 100 (float ratio)))))
+                ))))
+      (save-png file)
+      base)))
+</pre>
+</div>
+<p>
+Two things are going on here; we're creating a filename to store our image in
+based on the md5 of our passed in list, and we're drawing a pie chart.
+</p>
+
+<p>
+For this segment to work, you need to have a .ttf file available and point your
+#'get-font call to it.
+</p>
+
+<p>
+Then you should revisit src/web.lisp and update defroute to this:
+</p>
+<div class="org-src-container">
+<pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
+  (<span style="color: #3cff00; font-weight: bold;">let*</span> ((language-list
+          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #0055ff;">:test</span> #'equal))
+         (stats (get-language-sub-stats language-list))
+         (pie-name (pie-chart stats)))
+    (format nil <span style="color: #ff0077;">"&lt;img src='/images/~a.png' style='float:left;'&gt;</span>
+<span style="color: #ff0077;">&lt;div style='font-size:.8em;'&gt;~{~a&lt;br&gt;~%~}&lt;/div&gt;"</span>
+            pie-name
+            (get-language-sub-stats language-list))))
+</pre>
+</div>
+
+<p>
+so that when users visit your page, they see something amazing like this
+image at a link like this:
+</p>
+
+<p>
+<a href="http://localhost:5000/compare/haskell/lisp/clojure/prolog/C_programming/java/golang/javascript/php/ruby/python/perl/ada/cpp">Very long link awaits…</a>
+</p>
+
+
+<div class="figure">
+<p><img src="../img/lang-pop.png" alt="lang-pop.png">
+</p>
+</div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'ahungry'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+</div>
+</body>
+</html>
