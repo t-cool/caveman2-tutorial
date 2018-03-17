@@ -93,14 +93,14 @@ URLでcompare/以降を手作業で変更することで表示結果がかわり
 REPLでは次のように打ち込んでください:
 </p>
 <div class="org-src-container">
-<pre class="src src-lisp">(ql:quickload <span style="color: #0055ff;">:caveman2</span>)
+<pre class="src src-lisp">(ql:quickload <span style="color: #99ffff;">:caveman2</span>)
 
 (caveman2:make-project <span style="color: #ff0077;">"~/quicklisp/local-projects/language-popularity"</span>
-  <span style="color: #0055ff;">:author</span> <span style="color: #ff0077;">"Your Name"</span>
-  <span style="color: #0055ff;">:email</span> <span style="color: #ff0077;">"Your Email"</span>)
+  <span style="color: #99ffff;">:author</span> <span style="color: #ff0077;">"Your Name"</span>
+  <span style="color: #99ffff;">:email</span> <span style="color: #ff0077;">"Your Email"</span>)
 
-(ql:quickload <span style="color: #0055ff;">:language-popularity</span>)
-(language-popularity:start <span style="color: #0055ff;">:port</span> 5000)
+(ql:quickload <span style="color: #99ffff;">:language-popularity</span>)
+(language-popularity:start <span style="color: #99ffff;">:port</span> 5000)
 </pre>
 </div>
 
@@ -179,20 +179,20 @@ src/db.lispはありますが、それはデータベースのセットアップ
 新しくsrc/model.lispを作り、以下をつけ加えてください:
 </p>
 <div class="org-src-container">
-<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:cl-user</span>)
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #99ffff;">:cl-user</span>)
 (<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.model</span>
-  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
-        <span style="color: #0055ff;">:cl-json</span>
-        <span style="color: #0055ff;">:drakma</span>
-        <span style="color: #0055ff;">:vecto</span>
-        <span style="color: #0055ff;">:md5</span>
-        <span style="color: #0055ff;">:split-sequence</span>)
-  (<span style="color: #0055ff;">:import-from</span> <span style="color: #0055ff;">:language-popularity.config</span>
-                <span style="color: #0055ff;">:config</span>)
-  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:get-language-sub-stats</span>
-           <span style="color: #0055ff;">:pie-chart</span>))
+  (<span style="color: #99ffff;">:use</span> <span style="color: #99ffff;">:cl</span>
+        <span style="color: #99ffff;">:cl-json</span>
+        <span style="color: #99ffff;">:drakma</span>
+        <span style="color: #99ffff;">:vecto</span>
+        <span style="color: #99ffff;">:md5</span>
+        <span style="color: #99ffff;">:split-sequence</span>)
+  (<span style="color: #99ffff;">:import-from</span> <span style="color: #99ffff;">:language-popularity.config</span>
+                <span style="color: #99ffff;">:config</span>)
+  (<span style="color: #99ffff;">:export</span> <span style="color: #99ffff;">:get-language-sub-stats</span>
+           <span style="color: #99ffff;">:pie-chart</span>))
 
-(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:language-popularity.model</span>)
+(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #99ffff;">:language-popularity.model</span>)
 </pre>
 </div>
 
@@ -206,12 +206,12 @@ src/db.lispはありますが、それはデータベースのセットアップ
 
 </p>
 <div class="org-src-container">
-<pre class="src src-lisp"><span style="color: #0055ff;">:components</span>
-  ((<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"main"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span> <span style="color: #ff0077;">"view"</span> <span style="color: #ff0077;">"db"</span>))
-   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"web"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"model"</span> <span style="color: #ff0077;">"view"</span>))
-   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"model"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
-   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"view"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
-   (<span style="color: #0055ff;">:file</span> <span style="color: #ff0077;">"db"</span> <span style="color: #0055ff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+<pre class="src src-lisp"><span style="color: #99ffff;">:components</span>
+  ((<span style="color: #99ffff;">:file</span> <span style="color: #ff0077;">"main"</span> <span style="color: #99ffff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span> <span style="color: #ff0077;">"view"</span> <span style="color: #ff0077;">"db"</span>))
+   (<span style="color: #99ffff;">:file</span> <span style="color: #ff0077;">"web"</span> <span style="color: #99ffff;">:depends-on</span> (<span style="color: #ff0077;">"model"</span> <span style="color: #ff0077;">"view"</span>))
+   (<span style="color: #99ffff;">:file</span> <span style="color: #ff0077;">"model"</span> <span style="color: #99ffff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+   (<span style="color: #99ffff;">:file</span> <span style="color: #ff0077;">"view"</span> <span style="color: #99ffff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
+   (<span style="color: #99ffff;">:file</span> <span style="color: #ff0077;">"db"</span> <span style="color: #99ffff;">:depends-on</span> (<span style="color: #ff0077;">"config"</span>))
 </pre>
 </div>
 
@@ -223,20 +223,20 @@ modelに関する行を足し、webの行にmodelの依存関係も足しまし�
 必ず、modelをsrc/web.lispにも付け足してください：
 </p>
 <div class="org-src-container">
-<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:cl-user</span>)
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #99ffff;">:cl-user</span>)
 (<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.web</span>
-  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
-        <span style="color: #0055ff;">:caveman2</span>
-        <span style="color: #0055ff;">:language-popularity.config</span>
-        <span style="color: #0055ff;">:language-popularity.view</span>
-        <span style="color: #0055ff;">:language-popularity.db</span>
-        <span style="color: #0055ff;">:language-popularity.model</span>
-        <span style="color: #0055ff;">:datafly</span>
-        <span style="color: #0055ff;">:sxql</span>
-        <span style="color: #0055ff;">:split-sequence</span>
-        <span style="color: #0055ff;">:md5</span>)
-  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:*web*</span>))
-(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #0055ff;">:language-popularity.web</span>)
+  (<span style="color: #99ffff;">:use</span> <span style="color: #99ffff;">:cl</span>
+        <span style="color: #99ffff;">:caveman2</span>
+        <span style="color: #99ffff;">:language-popularity.config</span>
+        <span style="color: #99ffff;">:language-popularity.view</span>
+        <span style="color: #99ffff;">:language-popularity.db</span>
+        <span style="color: #99ffff;">:language-popularity.model</span>
+        <span style="color: #99ffff;">:datafly</span>
+        <span style="color: #99ffff;">:sxql</span>
+        <span style="color: #99ffff;">:split-sequence</span>
+        <span style="color: #99ffff;">:md5</span>)
+  (<span style="color: #99ffff;">:export</span> <span style="color: #99ffff;">:*web*</span>))
+(<span style="color: #3cff00; font-weight: bold;">in-package</span> <span style="color: #99ffff;">:language-popularity.web</span>)
 </pre>
 </div>
 </div>
@@ -253,7 +253,7 @@ modelに関する行を足し、webの行にmodelの依存関係も足しまし�
 直接、次のように打ち込んでもいいですし:
 </p>
 <div class="org-src-container">
-<pre class="src src-lisp">(ql:quickload <span style="color: #0055ff;">:library-name-here</span>)
+<pre class="src src-lisp">(ql:quickload <span style="color: #99ffff;">:library-name-here</span>)
 </pre>
 </div>
 
@@ -265,14 +265,14 @@ anguage-popularity.asdのファイルを開いて、defpackageの:useの箇所�
 ここで次ようなlanguage-popularity.asdファイルをもつべきです。
 </p>
 <div class="org-src-container">
-<pre class="src src-lisp"><span style="color: #0055ff;">:sxql</span>
+<pre class="src src-lisp"><span style="color: #99ffff;">:sxql</span>
 
 <span style="color: #888a85; font-style: italic;">;; </span><span style="color: #888a85; font-style: italic;">for other tasks</span>
-<span style="color: #0055ff;">:drakma</span>
-<span style="color: #0055ff;">:cl-json</span>
-<span style="color: #0055ff;">:split-sequence</span>
-<span style="color: #0055ff;">:vecto</span>
-<span style="color: #0055ff;">:md5</span>)
+<span style="color: #99ffff;">:drakma</span>
+<span style="color: #99ffff;">:cl-json</span>
+<span style="color: #99ffff;">:split-sequence</span>
+<span style="color: #99ffff;">:vecto</span>
+<span style="color: #99ffff;">:md5</span>)
 </pre>
 </div>
 
@@ -281,16 +281,16 @@ anguage-popularity.asdのファイルを開いて、defpackageの:useの箇所�
 </p>
 <div class="org-src-container">
 <pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defpackage</span> <span style="color: #deff00; font-weight: bold;">language-popularity.model</span>
-  (<span style="color: #0055ff;">:use</span> <span style="color: #0055ff;">:cl</span>
-        <span style="color: #0055ff;">:cl-json</span>
-        <span style="color: #0055ff;">:drakma</span>
-        <span style="color: #0055ff;">:vecto</span>
-        <span style="color: #0055ff;">:md5</span>
-        <span style="color: #0055ff;">:split-sequence</span>)
-  (<span style="color: #0055ff;">:import-from</span> <span style="color: #0055ff;">:language-popularity.config</span>
-                <span style="color: #0055ff;">:config</span>)
-  (<span style="color: #0055ff;">:export</span> <span style="color: #0055ff;">:get-language-sub-stats</span>
-           <span style="color: #0055ff;">:pie-chart</span>))
+  (<span style="color: #99ffff;">:use</span> <span style="color: #99ffff;">:cl</span>
+        <span style="color: #99ffff;">:cl-json</span>
+        <span style="color: #99ffff;">:drakma</span>
+        <span style="color: #99ffff;">:vecto</span>
+        <span style="color: #99ffff;">:md5</span>
+        <span style="color: #99ffff;">:split-sequence</span>)
+  (<span style="color: #99ffff;">:import-from</span> <span style="color: #99ffff;">:language-popularity.config</span>
+                <span style="color: #99ffff;">:config</span>)
+  (<span style="color: #99ffff;">:export</span> <span style="color: #99ffff;">:get-language-sub-stats</span>
+           <span style="color: #99ffff;">:pie-chart</span>))
 </pre>
 </div>
 
@@ -300,18 +300,18 @@ pie-chart関数と:vectoが後にくることは無視してください。今�
 <div class="org-src-container">
 <pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defclass</span> <span style="color: #deff00; font-weight: bold;">Language</span> ()
   ((Subscribers
-    <span style="color: #0055ff;">:accessor</span> subs
-    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:subs</span>
-    <span style="color: #0055ff;">:initform</span> 0)
+    <span style="color: #99ffff;">:accessor</span> subs
+    <span style="color: #99ffff;">:initarg</span> <span style="color: #99ffff;">:subs</span>
+    <span style="color: #99ffff;">:initform</span> 0)
    (Last-Updated
-    <span style="color: #0055ff;">:accessor</span> last-updated
-    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:last-updated</span>
-    <span style="color: #0055ff;">:initform</span> 0)
+    <span style="color: #99ffff;">:accessor</span> last-updated
+    <span style="color: #99ffff;">:initarg</span> <span style="color: #99ffff;">:last-updated</span>
+    <span style="color: #99ffff;">:initform</span> 0)
    (About
-    <span style="color: #0055ff;">:accessor</span> about
-    <span style="color: #0055ff;">:initarg</span> <span style="color: #0055ff;">:about</span>
-    <span style="color: #0055ff;">:initform</span> <span style="color: #ff0077;">"Some details about the language."</span>))
-  (<span style="color: #0055ff;">:documentation</span> <span style="color: #777700; font-weight: bold; font-style: italic;">"Language stats and details"</span>))
+    <span style="color: #99ffff;">:accessor</span> about
+    <span style="color: #99ffff;">:initarg</span> <span style="color: #99ffff;">:about</span>
+    <span style="color: #99ffff;">:initform</span> <span style="color: #ff0077;">"Some details about the language."</span>))
+  (<span style="color: #99ffff;">:documentation</span> <span style="color: #777700; font-weight: bold; font-style: italic;">"Language stats and details"</span>))
 
 (<span style="color: #3cff00; font-weight: bold;">defun</span> <span style="color: #ffee00; font-weight: bold;">pie-chart</span> (slices)
   slices)
@@ -375,7 +375,7 @@ redditのエンドポイントを利用して、実際のデータをもった�
 これを付け足してください:
 </p>
 <div class="org-src-container">
-<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defparameter</span> <span style="color: #0033ff; font-weight: bold;">*language-stats*</span> (make-hash-table <span style="color: #0055ff;">:test</span> #'equal))
+<pre class="src src-lisp">(<span style="color: #3cff00; font-weight: bold;">defparameter</span> <span style="color: #0033ff; font-weight: bold;">*language-stats*</span> (make-hash-table <span style="color: #99ffff;">:test</span> #'equal))
 (<span style="color: #3cff00; font-weight: bold;">defconstant</span> <span style="color: #0033ff; font-weight: bold;">+cache-time+</span> (* 60 60)) <span style="color: #888a85; font-style: italic;">;; </span><span style="color: #888a85; font-style: italic;">1 hour</span>
 
 (<span style="color: #3cff00; font-weight: bold;">defmacro</span> <span style="color: #ffee00; font-weight: bold;">jkey</span> (k <span style="color: #deff00; font-weight: bold;">&amp;rest</span> rest)
@@ -390,8 +390,8 @@ redditのエンドポイントを利用して、実際のデータをもった�
              (remote-json-request
               (format nil <span style="color: #ff0077;">"http://reddit.com/r/~a/about.json"</span>
                       language))))
-        (<span style="color: #3cff00; font-weight: bold;">when</span> (jkey <span style="color: #0055ff;">:subscribers</span> (jkey <span style="color: #0055ff;">:data</span> reddit-json))
-          (setf (subs lang-class) (jkey <span style="color: #0055ff;">:subscribers</span> (jkey <span style="color: #0055ff;">:data</span> reddit-json))))
+        (<span style="color: #3cff00; font-weight: bold;">when</span> (jkey <span style="color: #99ffff;">:subscribers</span> (jkey <span style="color: #99ffff;">:data</span> reddit-json))
+          (setf (subs lang-class) (jkey <span style="color: #99ffff;">:subscribers</span> (jkey <span style="color: #99ffff;">:data</span> reddit-json))))
         (setf (last-updated lang-class) (get-universal-time))))
     (setf (gethash language *language-stats*) lang-class)
     (cons (intern (string-upcase language)) (subs lang-class))))
@@ -453,7 +453,7 @@ src/model.lispに、次のように付け足してください：
   <span style="color: #777700; font-weight: bold; font-style: italic;">"Pull out the stats for a variety of languages listed"</span>
   (sort
    (mapcar #'set-language-stats language-list)
-   #'&gt; <span style="color: #0055ff;">:key</span> #'cdr))
+   #'&gt; <span style="color: #99ffff;">:key</span> #'cdr))
 </pre>
 </div>
 
@@ -467,7 +467,7 @@ src/web.lispで、これを処理できるように、ルーティングを更�
 <div class="org-src-container">
 <pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
   (<span style="color: #3cff00; font-weight: bold;">let*</span> ((language-list
-          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #0055ff;">:test</span> #'equal))
+          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #99ffff;">:test</span> #'equal))
          (stats (get-language-sub-stats language-list)))
     (format nil <span style="color: #ff0077;">"&lt;div style='font-size:.8em;'&gt;~{~a&lt;br&gt;~%~}&lt;/div&gt;"</span>
             (get-language-sub-stats language-list))))
@@ -513,13 +513,13 @@ vectoのAPIドキュメントは、素晴らしい出来なので、ここでは
   <span style="color: #777700; font-weight: bold; font-style: italic;">"Parse the data, make a pretty chart"</span>
   (<span style="color: #3cff00; font-weight: bold;">let*</span> ((base (md5-as-string (md5sum-string (format nil <span style="color: #ff0077;">"~{~a~}"</span> (mapcar #'car slices)))))
          (file (format nil <span style="color: #ff0077;">"~~/quicklisp/local-projects/language-popularity/static/images/~a.png"</span> base)))
-    (<span style="color: #3cff00; font-weight: bold;">with-canvas</span> (<span style="color: #0055ff;">:width</span> 400 <span style="color: #0055ff;">:height</span> 250)
+    (<span style="color: #3cff00; font-weight: bold;">with-canvas</span> (<span style="color: #99ffff;">:width</span> 400 <span style="color: #99ffff;">:height</span> 250)
       (set-rgb-fill 1.0 0 0)
       (centered-circle-path 105 125 100)
       (fill-path)
       (set-font (get-font <span style="color: #ff0077;">"~/quicklisp/local-projects/language-popularity/fonts/kenpixel.ttf"</span>) 10)
       (<span style="color: #3cff00; font-weight: bold;">let</span> ((ratios slices)
-            (sum (reduce #'+ slices <span style="color: #0055ff;">:key</span> #'cdr))
+            (sum (reduce #'+ slices <span style="color: #99ffff;">:key</span> #'cdr))
             (last-theta 0))
         (<span style="color: #3cff00; font-weight: bold;">dotimes</span> (i (length ratios))
           (<span style="color: #3cff00; font-weight: bold;">with-graphics-state</span>
@@ -559,7 +559,7 @@ src/web.lispをもう一度開いて、defrouteをこののように更新する
 <div class="org-src-container">
 <pre class="src src-lisp">(defroute <span style="color: #ff0077;">"/compare/*"</span> (<span style="color: #deff00; font-weight: bold;">&amp;key</span> splat)
   (<span style="color: #3cff00; font-weight: bold;">let*</span> ((language-list
-          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #0055ff;">:test</span> #'equal))
+          (remove <span style="color: #ff0077;">""</span> (split-sequence #\/ (car splat)) <span style="color: #99ffff;">:test</span> #'equal))
          (stats (get-language-sub-stats language-list))
          (pie-name (pie-chart stats)))
     (format nil <span style="color: #ff0077;">"&lt;img src='/images/~a.png' style='float:left;'&gt;</span>
